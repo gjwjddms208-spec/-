@@ -98,20 +98,29 @@ export const Header: React.FC<Props> = ({
               <HelpCircle className="w-4 h-4" />
             </button>
 
-            {/* Sync Status Badge */}
-            <button
-              onClick={onOpenFirebaseGuide}
-              title="Firebase Cloud Firestore 연동 상태"
-              className="bg-[#2d2926]/5 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium border border-[#2d2926]/10 flex items-center space-x-1.5 text-[#2d2926] hover:bg-[#2d2926]/10 transition-colors whitespace-nowrap shrink-0"
+            {/* Sync Status Indicator (Read-only Badge, no credential modal for students) */}
+            <div
+              title={
+                isFirebaseConfigured
+                  ? '클라우드 실시간 동기화 활성화됨'
+                  : '로컬/브라우저 스토리지 모드로 안전하게 작동 중'
+              }
+              className="bg-[#2d2926]/5 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium border border-[#2d2926]/10 flex items-center space-x-1.5 text-[#2d2926] select-none whitespace-nowrap shrink-0"
             >
-              <span className="text-[#8b4513] text-[10px]">●</span>
+              <span
+                className={`text-[10px] ${
+                  isFirebaseConfigured ? 'text-[#2e5a59]' : 'text-[#8b4513]'
+                }`}
+              >
+                ●
+              </span>
               <span className="hidden sm:inline whitespace-nowrap">
-                {isFirebaseConfigured ? '실시간 동기화' : '로컬 시연 모드'}
+                {isFirebaseConfigured ? '실시간 동기화' : '학급 로컬 모드'}
               </span>
               <span className="sm:hidden whitespace-nowrap">
                 {isFirebaseConfigured ? '동기화' : '로컬'}
               </span>
-            </button>
+            </div>
 
             {/* Student Info or Teacher Admin / Login Button */}
             {student ? (

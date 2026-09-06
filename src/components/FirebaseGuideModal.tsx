@@ -18,7 +18,7 @@ VITE_FIREBASE_PROJECT_ID="sumaksae-restoration"
 VITE_FIREBASE_STORAGE_BUCKET="sumaksae-restoration.appspot.com"
 VITE_FIREBASE_MESSAGING_SENDER_ID="123456789012"
 VITE_FIREBASE_APP_ID="1:123456789012:web:abcdef123456"
-VITE_TEACHER_PASSWORD="2026"`;
+VITE_TEACHER_PASSWORD="선생님_지정_비밀번호"`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(envTemplate);

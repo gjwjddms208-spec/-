@@ -20,15 +20,17 @@ import {
   Save,
   Check,
   KeyRound,
+  Database,
   X,
 } from 'lucide-react';
 
 interface Props {
   submissions: Submission[];
   onBackToApp: () => void;
+  onOpenFirebaseGuide?: () => void;
 }
 
-export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
+export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpenFirebaseGuide }) => {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputPassword, setInputPassword] = useState('');
@@ -302,6 +304,16 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
         </div>
 
         <div className="flex items-center space-x-2 self-start md:self-center shrink-0 flex-wrap gap-y-1">
+          {onOpenFirebaseGuide && (
+            <button
+              onClick={onOpenFirebaseGuide}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/15 bg-white text-[#2d2926] hover:bg-[#f5f2ed] text-xs font-medium shadow-xs transition-colors whitespace-nowrap shrink-0"
+              title="Firebase Cloud DB 연동 설정 및 안내"
+            >
+              <Database className="w-3.5 h-3.5 text-[#8b4513] shrink-0" />
+              <span className="whitespace-nowrap">DB 연동 설정</span>
+            </button>
+          )}
           <button
             onClick={() => {
               setShowChangePwModal(true);

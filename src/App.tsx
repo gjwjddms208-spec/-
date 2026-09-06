@@ -155,6 +155,7 @@ export default function App() {
           <TeacherAdmin
             submissions={submissions}
             onBackToApp={() => setCurrentView(student ? 'drawing' : 'login')}
+            onOpenFirebaseGuide={() => setShowFirebaseModal(true)}
           />
         )}
       </main>
@@ -176,12 +177,6 @@ export default function App() {
               className="hover:text-[#8b4513] underline"
             >
               수학적 원리 증명
-            </button>
-            <button
-              onClick={() => setShowFirebaseModal(true)}
-              className="hover:text-[#8b4513] underline"
-            >
-              Firebase 설정 안내
             </button>
             <span>국립박물관 유물보존센터 협업 모델링</span>
           </div>
