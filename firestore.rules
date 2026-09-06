@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 수막새 복원 탐구실 학생 제출 데이터 컬렉션
+    match /submissions/{submissionId} {
+      // 1. 읽기(read): 학급 현황판 및 교사 페이지에서 누구나 제출 내역 조회 가능
+      allow read: if true;
+      
+      // 2. 생성(create): 학생은 필수 필드(반, 번호, 모둠, 이름, 작도, 성찰)를 포함하여 제출 가능
+      allow create: if request.resource.data.keys().hasAll([
+        'gradeClass', 'studentNo', 'teamNo', 'name', 'reflection', 'createdAt'
+      ]);
+      
+      // 3. 수정/삭제(update/delete): 
+      // 교사 평가(evaluation, teacherFeedback, evaluatedAt) 필드 업데이트 또는 관리 작업 허용
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['evaluation', 'teacherFeedback', 'evaluatedAt', 'updatedAt']);
+        
+      allow delete: if false; // 우발적 삭제 방지 (필요 시 교사 권한 관리)
+    }
+  }
+}

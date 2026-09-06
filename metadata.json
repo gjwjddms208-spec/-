@@ -1,0 +1,6 @@
+{
+  "name": "수막새 복원 수학 탐구실",
+  "description": "중학교 3학년 수학 '원의 현의 성질'과 피타고라스 정리를 활용한 삼국시대 수막새 유물 디지털 복원 및 탐구 학습 플랫폼",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
