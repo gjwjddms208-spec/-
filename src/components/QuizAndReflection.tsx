@@ -112,19 +112,6 @@ export const QuizAndReflection: React.FC<Props> = ({
     }
   };
 
-  // Helper template fillers for students who want inspiration
-  const fillSampleReflection = () => {
-    setLearned(
-      '원의 중심에서 현에 내린 수선은 그 현을 수직이등분한다는 성질과, 역으로 현의 수직이등분선은 항상 원의 중심을 지난다는 원리를 직접 작도해 보며 확실히 이해했습니다. 직각삼각형 피타고라스 정리를 적용해 원래 수막새의 반지름(10cm)도 수학적으로 정당화할 수 있었습니다.'
-    );
-    setFelt(
-      '박물관에서 깨진 채로 전시된 고대 신라와 백제의 수막새 유물들이 어떻게 원형의 온전한 지름과 중심을 찾아 복원되는지 늘 신기했는데, 우리가 교실에서 배우는 수학 지식이 실제 문화유산 보존 과학의 핵심 기술이라는 점에 큰 보람과 흥미를 느꼈습니다.'
-    );
-    setConnected(
-      '우리가 타는 자전거 바퀴나 시계, 원형 아치 터널의 일부분만 남아있을 때도 원호의 두 현을 측정해 원의 크기를 정확히 복원할 수 있고, 원형 도로의 안전 곡률을 계산할 때도 유용하게 쓰일 수 있습니다.'
-    );
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-8">
       {/* Top Header */}
@@ -314,7 +301,7 @@ export const QuizAndReflection: React.FC<Props> = ({
 
       {/* Part 2: 배·느·실 성찰일지 (Reflection) */}
       <div className="bg-[#f9f7f2] rounded-2xl border border-[#2d2926]/10 p-5 sm:p-7 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2d2926]/10 pb-3 gap-2">
+        <div className="border-b border-[#2d2926]/10 pb-3">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-[#8b4513]/15 text-[#8b4513] border border-[#8b4513]/20 flex items-center justify-center font-bold text-xs">
               배느실
@@ -324,18 +311,10 @@ export const QuizAndReflection: React.FC<Props> = ({
                 수학 탐구 성찰일지 (배운 점 · 느낀 점 · 실생활 연결)
               </h3>
               <span className="text-xs text-[#726960]">
-                교사 평가 루브릭 4대 영역에 반영됩니다.
+                교사 평가 루브릭 4대 영역에 반영됩니다. 자신의 생각과 언어로 진솔하게 작성해 보세요.
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={fillSampleReflection}
-            className="text-[11px] px-2.5 py-1 rounded bg-white/80 hover:bg-[#f5f2ed] border border-[#2d2926]/10 text-[#2d2926]/80 self-start sm:self-center transition-colors shadow-xs"
-          >
-            성찰 예시 채우기 (데모용)
-          </button>
         </div>
 
         {submitError && (
