@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Submission } from '../types';
+import type { Submission, StudentInfo } from '../types';
 import {
   LayoutGrid,
   Users,
@@ -12,13 +12,22 @@ import {
   BookOpen,
   X,
   Compass,
+  Lock,
 } from 'lucide-react';
 
 interface Props {
   submissions: Submission[];
+  currentStudent?: StudentInfo | null;
 }
 
-export const ClassBoard: React.FC<Props> = ({ submissions }) => {
+export const ClassBoard: React.FC<Props> = ({ submissions, currentStudent }) => {
+  // If a student is logged in, their class is strictly locked to their own class
+  const studentClass = currentStudent?.gradeClass?.trim() || '';
+  const isClassLocked = Boolean(studentClass);
+
+  const [selectedClass, setSelectedClass] = useState<string>(
+    isClassLocked ? studentClass : 'ALL'
+  );
   const [selectedTeam, setSelectedTeam] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModalSub, setSelectedModalSub] = useState<Submission | null>(null);
@@ -32,7 +41,18 @@ export const ClassBoard: React.FC<Props> = ({ submissions }) => {
     6: { bg: 'bg-[#704a29]', text: 'text-white', border: 'border-[#583920]', name: '6모둠 (기린)' },
   };
 
-  const filteredSubmissions = submissions.filter((sub) => {
+  // Base scope: When a student is logged in, only submissions from their own class are ever allowed
+  const scopedSubmissions = submissions.filter((sub) => {
+    if (isClassLocked) {
+      return sub.gradeClass === studentClass;
+    }
+    if (selectedClass !== 'ALL') {
+      return sub.gradeClass === selectedClass;
+    }
+    return true;
+  });
+
+  const filteredSubmissions = scopedSubmissions.filter((sub) => {
     if (selectedTeam !== 'ALL' && sub.teamNo !== selectedTeam) {
       return false;
     }
@@ -47,11 +67,11 @@ export const ClassBoard: React.FC<Props> = ({ submissions }) => {
     return true;
   });
 
-  // Calculate statistics
-  const totalCount = submissions.length;
-  const restoredCount = submissions.filter((s) => s.drawingData.isRestored).length;
-  const quizCorrectCount = submissions.filter((s) => s.quizData.isCorrect).length;
-  const evaluatedCount = submissions.filter((s) => s.evaluation).length;
+  // Calculate statistics for the relevant scope
+  const totalCount = scopedSubmissions.length;
+  const restoredCount = scopedSubmissions.filter((s) => s.drawingData.isRestored).length;
+  const quizCorrectCount = scopedSubmissions.filter((s) => s.quizData.isCorrect).length;
+  const evaluatedCount = scopedSubmissions.filter((s) => s.evaluation).length;
 
   const formatDate = (dateStr: any) => {
     if (!dateStr) return '방금 전';
@@ -83,11 +103,19 @@ export const ClassBoard: React.FC<Props> = ({ submissions }) => {
             <LayoutGrid className="w-4 h-4" />
             <span>탐구 모듈 3: 실시간 학급 대시보드</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-batang font-bold text-[#2d2926]">
-            우리 반 수막새 복원 탐구 현황판
+          <h2 className="text-xl sm:text-2xl font-batang font-bold text-[#2d2926] flex items-center gap-2">
+            <span>{studentClass ? `${studentClass} 수막새 복원 탐구 현황판` : '우리 반 수막새 복원 탐구 현황판'}</span>
+            {isClassLocked && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#8b4513]/10 text-[#8b4513] border border-[#8b4513]/20">
+                <Lock className="w-3 h-3 mr-1" />
+                {studentClass} 전용
+              </span>
+            )}
           </h2>
           <p className="text-xs sm:text-sm text-[#726960] mt-1">
-            Firestore 실시간 동기화로 친구들의 작도 결과, 수학 성찰, 교사 피드백이 실시간으로 공유됩니다.
+            {isClassLocked
+              ? `[${studentClass}] 친구들의 작도 결과와 수학 성찰만 안전하게 실시간 공유됩니다.`
+              : '친구들의 작도 결과, 수학 성찰, 교사 피드백이 실시간으로 공유됩니다.'}
           </p>
         </div>
 
@@ -118,35 +146,61 @@ export const ClassBoard: React.FC<Props> = ({ submissions }) => {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#f9f7f2] p-3 sm:p-4 rounded-xl border border-[#2d2926]/10">
-        {/* Team filter tabs */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          <button
-            onClick={() => setSelectedTeam('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap border ${
-              selectedTeam === 'ALL'
-                ? 'bg-[#2d2926] text-[#f5f2ed] border-[#2d2926]'
-                : 'bg-white text-[#2d2926]/70 border-[#2d2926]/10 hover:bg-[#f5f2ed]'
-            }`}
-          >
-            전체 모둠 ({submissions.length})
-          </button>
-          {[1, 2, 3, 4, 5, 6].map((team) => {
-            const count = submissions.filter((s) => s.teamNo === team).length;
-            const isSelected = selectedTeam === team;
-            return (
-              <button
-                key={team}
-                onClick={() => setSelectedTeam(team)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap border ${
-                  isSelected
-                    ? `${teamColors[team].bg} text-white ${teamColors[team].border} shadow-xs`
-                    : 'bg-white text-[#2d2926]/70 border-[#2d2926]/10 hover:bg-[#f5f2ed]'
-                }`}
+        <div className="flex items-center space-x-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          {/* Class Filter: If student is logged in, show fixed badge. If guest/teacher preview, allow selection */}
+          {isClassLocked ? (
+            <div className="flex items-center space-x-1.5 shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-[#2d2926]/15 text-xs">
+              <span className="text-[#726960]">소속 학급:</span>
+              <span className="font-bold text-[#8b4513]">{studentClass}</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 shrink-0">
+              <span className="text-xs text-[#726960] font-medium">학급:</span>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg border border-[#2d2926]/15 bg-white text-xs font-semibold text-[#8b4513] focus:outline-none"
               >
-                {team}모둠 ({count})
-              </button>
-            );
-          })}
+                <option value="ALL">전체 학급</option>
+                {['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9'].map((cls) => (
+                  <option key={cls} value={cls}>
+                    {cls}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Team filter tabs */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto">
+            <button
+              onClick={() => setSelectedTeam('ALL')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap border ${
+                selectedTeam === 'ALL'
+                  ? 'bg-[#2d2926] text-[#f5f2ed] border-[#2d2926]'
+                  : 'bg-white text-[#2d2926]/70 border-[#2d2926]/10 hover:bg-[#f5f2ed]'
+              }`}
+            >
+              전체 모둠 ({scopedSubmissions.length})
+            </button>
+            {[1, 2, 3, 4, 5, 6].map((team) => {
+              const count = scopedSubmissions.filter((s) => s.teamNo === team).length;
+              const isSelected = selectedTeam === team;
+              return (
+                <button
+                  key={team}
+                  onClick={() => setSelectedTeam(team)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap border ${
+                    isSelected
+                      ? `${teamColors[team].bg} text-white ${teamColors[team].border} shadow-xs`
+                      : 'bg-white text-[#2d2926]/70 border-[#2d2926]/10 hover:bg-[#f5f2ed]'
+                  }`}
+                >
+                  {team}모둠 ({count})
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Search */}

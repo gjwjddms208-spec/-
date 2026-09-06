@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { StudentInfo } from '../types';
-import { TEACHER_PASSWORD } from '../lib/firebase';
+import { verifyTeacherPassword } from '../lib/firebase';
 import {
   Users,
   Compass,
@@ -63,11 +63,13 @@ export const LoginView: React.FC<Props> = ({ onLogin, onGoToTeacher }) => {
 
   const handleTeacherLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (teacherInputPw === TEACHER_PASSWORD || teacherInputPw === '1234') {
+    if (verifyTeacherPassword(teacherInputPw)) {
       setShowTeacherModal(false);
+      setTeacherPwError('');
+      setTeacherInputPw('');
       onGoToTeacher();
     } else {
-      setTeacherPwError(`비밀번호가 일치하지 않습니다. (안내: 기본 설정값은 '${TEACHER_PASSWORD}' 입니다)`);
+      setTeacherPwError('비밀번호가 일치하지 않습니다. 다시 확인해 주세요.');
     }
   };
 
@@ -121,16 +123,17 @@ export const LoginView: React.FC<Props> = ({ onLogin, onGoToTeacher }) => {
                   <label className="block text-xs font-semibold text-[#2d2926] mb-1.5">
                     학급 (학년-반)
                   </label>
-                  <div className="flex space-x-1.5 mb-2">
-                    {['3-1', '3-2', '3-3', '3-4'].map((cls) => (
+                  {/* Quick Select Buttons 3-1 ~ 3-9 */}
+                  <div className="grid grid-cols-5 sm:grid-cols-9 gap-1 mb-2">
+                    {['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9'].map((cls) => (
                       <button
                         type="button"
                         key={cls}
                         onClick={() => setGradeClass(cls)}
-                        className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors border ${
+                        className={`py-1.5 rounded-md text-xs font-semibold transition-all border text-center ${
                           gradeClass === cls
-                            ? 'bg-[#2d2926] text-[#f5f2ed] border-[#2d2926]'
-                            : 'bg-white text-[#726960] border-[#2d2926]/15 hover:bg-[#f5f2ed]'
+                            ? 'bg-[#8b4513] text-white border-[#8b4513] shadow-xs scale-105'
+                            : 'bg-white text-[#524a43] border-[#2d2926]/15 hover:bg-[#f5f2ed] hover:border-[#8b4513]/40'
                         }`}
                       >
                         {cls}
@@ -141,7 +144,7 @@ export const LoginView: React.FC<Props> = ({ onLogin, onGoToTeacher }) => {
                     type="text"
                     value={gradeClass}
                     onChange={(e) => setGradeClass(e.target.value)}
-                    placeholder="예: 3-1 또는 3반"
+                    placeholder="직접 입력도 가능 (예: 3-1, 3-9)"
                     className="w-full px-3 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-sm text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
                   />
                 </div>
@@ -279,16 +282,9 @@ export const LoginView: React.FC<Props> = ({ onLogin, onGoToTeacher }) => {
                   autoFocus
                   className="w-full px-3.5 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-sm text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
                 />
-                <div className="mt-1.5 flex items-center justify-between text-[11px] text-[#726960]">
-                  <span>환경변수: VITE_TEACHER_PASSWORD</span>
-                  <button
-                    type="button"
-                    onClick={() => setTeacherInputPw(TEACHER_PASSWORD)}
-                    className="text-[#8b4513] hover:underline"
-                  >
-                    기본값({TEACHER_PASSWORD}) 자동입력
-                  </button>
-                </div>
+                <p className="mt-2 text-[11px] text-[#726960]">
+                  * 교사용 관리실은 보안 구역으로 담당 교사만 접속할 수 있습니다.
+                </p>
               </div>
 
               <div className="flex items-center space-x-2 pt-2">

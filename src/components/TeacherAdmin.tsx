@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import type { RubricEvaluation, RubricGrade, Submission } from '../types';
-import { TEACHER_PASSWORD, updateTeacherEvaluation } from '../lib/firebase';
+import {
+  verifyTeacherPassword,
+  setCustomTeacherPassword,
+  getTeacherPassword,
+  updateTeacherEvaluation,
+} from '../lib/firebase';
 import {
   ShieldCheck,
   Award,
@@ -14,6 +19,8 @@ import {
   LogOut,
   Save,
   Check,
+  KeyRound,
+  X,
 } from 'lucide-react';
 
 interface Props {
@@ -28,6 +35,7 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
   const [authError, setAuthError] = useState('');
 
   // Table filter states
+  const [classFilter, setClassFilter] = useState<string>('ALL');
   const [teamFilter, setTeamFilter] = useState<number | 'ALL'>('ALL');
   const [evalFilter, setEvalFilter] = useState<'ALL' | 'EVALUATED' | 'PENDING'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,15 +50,42 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
   const [savingEval, setSavingEval] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Password management modal states inside dashboard
+  const [showChangePwModal, setShowChangePwModal] = useState(false);
+  const [newPwInput, setNewPwInput] = useState('');
+  const [confirmPwInput, setConfirmPwInput] = useState('');
+  const [changePwMsg, setChangePwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Authentication check
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputPassword === TEACHER_PASSWORD || inputPassword === '1234') {
+    if (verifyTeacherPassword(inputPassword)) {
       setIsAuthenticated(true);
       setAuthError('');
+      setInputPassword('');
     } else {
-      setAuthError(`비밀번호가 올바르지 않습니다. (설정값: ${TEACHER_PASSWORD})`);
+      setAuthError('비밀번호가 일치하지 않습니다. 다시 확인해 주세요.');
     }
+  };
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPwInput.trim()) {
+      setChangePwMsg({ type: 'error', text: '새 비밀번호를 입력해 주세요.' });
+      return;
+    }
+    if (newPwInput.trim() !== confirmPwInput.trim()) {
+      setChangePwMsg({ type: 'error', text: '비밀번호 확인이 일치하지 않습니다.' });
+      return;
+    }
+    setCustomTeacherPassword(newPwInput.trim());
+    setChangePwMsg({ type: 'success', text: '교사 비밀번호가 성공적으로 변경되었습니다.' });
+    setTimeout(() => {
+      setShowChangePwModal(false);
+      setNewPwInput('');
+      setConfirmPwInput('');
+      setChangePwMsg(null);
+    }, 1500);
   };
 
   const openGradingModal = (sub: Submission) => {
@@ -163,6 +198,7 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
 
   // Filter submissions
   const filteredSubmissions = submissions.filter((s) => {
+    if (classFilter !== 'ALL' && s.gradeClass !== classFilter) return false;
     if (teamFilter !== 'ALL' && s.teamNo !== teamFilter) return false;
     if (evalFilter === 'EVALUATED' && !s.evaluation) return false;
     if (evalFilter === 'PENDING' && s.evaluation) return false;
@@ -222,16 +258,9 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
                 autoFocus
                 className="w-full px-3.5 py-2.5 rounded-lg border border-[#2d2926]/20 bg-white text-sm text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
               />
-              <div className="mt-2 flex items-center justify-between text-[11px] text-[#726960]">
-                <span>환경변수: VITE_TEACHER_PASSWORD</span>
-                <button
-                  type="button"
-                  onClick={() => setInputPassword(TEACHER_PASSWORD)}
-                  className="text-[#8b4513] hover:underline"
-                >
-                  기본값({TEACHER_PASSWORD}) 입력
-                </button>
-              </div>
+              <p className="mt-2 text-[11px] text-[#726960]">
+                * 교사용 평가 관리실 접속 권한은 담당 교사에게만 부여됩니다.
+              </p>
             </div>
 
             <div className="flex space-x-2 pt-2">
@@ -273,6 +302,19 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
         </div>
 
         <div className="flex items-center space-x-2 self-start md:self-center">
+          <button
+            onClick={() => {
+              setShowChangePwModal(true);
+              setChangePwMsg(null);
+              setNewPwInput('');
+              setConfirmPwInput('');
+            }}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/15 bg-white text-[#2d2926] hover:bg-[#f5f2ed] text-xs font-medium shadow-xs transition-colors"
+            title="교사 관리실 비밀번호 변경"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-[#8b4513]" />
+            <span>비밀번호 변경</span>
+          </button>
           <button
             onClick={exportToCSV}
             className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#2e5a59] hover:bg-[#234544] text-white text-xs font-medium shadow-xs transition-colors"
@@ -344,6 +386,23 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
       {/* Filter and Search Bar */}
       <div className="bg-[#f9f7f2] p-4 rounded-xl border border-[#2d2926]/10 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center space-x-2 overflow-x-auto w-full sm:w-auto">
+          {/* Class Filter (3-1 ~ 3-9) */}
+          <div className="flex items-center space-x-1">
+            <span className="text-xs text-[#726960] font-medium hidden sm:inline">학급:</span>
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="px-2.5 py-1.5 rounded-lg border border-[#2d2926]/15 bg-white text-xs font-semibold text-[#8b4513] focus:outline-none"
+            >
+              <option value="ALL">전체 학급</option>
+              {['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9'].map((cls) => (
+                <option key={cls} value={cls}>
+                  {cls}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Team Filter */}
           <div className="flex items-center space-x-1">
             <span className="text-xs text-[#726960] font-medium hidden sm:inline">모둠:</span>
@@ -754,6 +813,88 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Teacher Password Change Modal */}
+      {showChangePwModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#f9f7f2] rounded-2xl border border-[#2d2926]/15 max-w-sm w-full p-6 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowChangePwModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#726960] hover:text-[#2d2926] hover:bg-[#f5f2ed]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-2 text-[#8b4513]">
+              <KeyRound className="w-5 h-5" />
+              <h3 className="font-batang font-bold text-base text-[#2d2926]">
+                교사 비밀번호 변경
+              </h3>
+            </div>
+
+            <p className="text-xs text-[#726960] leading-relaxed">
+              새로운 교사용 비밀번호를 설정합니다. 변경 즉시 저장되며 다음 로그인부터 적용됩니다.
+            </p>
+
+            {changePwMsg && (
+              <div
+                className={`p-2.5 rounded-lg text-xs ${
+                  changePwMsg.type === 'success'
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border border-rose-200 text-rose-800'
+                }`}
+              >
+                {changePwMsg.text}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                  새 비밀번호
+                </label>
+                <input
+                  type="password"
+                  value={newPwInput}
+                  onChange={(e) => setNewPwInput(e.target.value)}
+                  placeholder="새 비밀번호 입력"
+                  className="w-full px-3 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-xs text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                  새 비밀번호 확인
+                </label>
+                <input
+                  type="password"
+                  value={confirmPwInput}
+                  onChange={(e) => setConfirmPwInput(e.target.value)}
+                  placeholder="새 비밀번호 재입력"
+                  className="w-full px-3 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-xs text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePwModal(false)}
+                  className="flex-1 py-2 rounded-lg border border-[#2d2926]/20 text-xs font-medium text-[#726960] hover:bg-[#f5f2ed]"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 rounded-lg bg-[#8b4513] hover:bg-[#703810] text-xs font-bold text-white shadow-xs"
+                >
+                  변경 저장
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

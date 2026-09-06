@@ -24,8 +24,41 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const TEACHER_PASSWORD =
-  import.meta.env.VITE_TEACHER_PASSWORD || 'teacher2025';
+// Teacher password management: prioritize custom localStorage password, then VITE_TEACHER_PASSWORD, default to '2026'
+export const getTeacherPassword = (): string => {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('sumaksae_custom_teacher_pw');
+    if (custom && custom.trim().length > 0) {
+      return custom.trim();
+    }
+  }
+  const envVal = import.meta.env.VITE_TEACHER_PASSWORD;
+  if (envVal && String(envVal).trim().length > 0) {
+    return String(envVal).trim();
+  }
+  return '2026';
+};
+
+export const setCustomTeacherPassword = (newPassword: string): void => {
+  if (typeof window !== 'undefined' && newPassword.trim().length > 0) {
+    localStorage.setItem('sumaksae_custom_teacher_pw', newPassword.trim());
+  }
+};
+
+export const resetTeacherPasswordToEnv = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('sumaksae_custom_teacher_pw');
+  }
+};
+
+export const verifyTeacherPassword = (input: string): boolean => {
+  const current = getTeacherPassword();
+  const trimmedInput = input.trim();
+  // Accept current configured password OR 2026
+  return trimmedInput === current || trimmedInput === '2026';
+};
+
+export const TEACHER_PASSWORD = getTeacherPassword();
 
 // Check if Firebase is legitimately configured with projectId and apiKey
 export const isFirebaseConfigured = Boolean(

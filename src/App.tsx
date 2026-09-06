@@ -148,7 +148,7 @@ export default function App() {
         )}
 
         {currentView === 'board' && (
-          <ClassBoard submissions={submissions} />
+          <ClassBoard submissions={submissions} currentStudent={student} />
         )}
 
         {currentView === 'teacher' && (
