@@ -128,16 +128,16 @@ export const QuizAndReflection: React.FC<Props> = ({
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-8">
       {/* Top Header */}
-      <div className="bg-[#f9f7f2] p-5 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-[#8b4513] uppercase tracking-wider mb-1">
-            <FileText className="w-4 h-4" />
-            <span>탐구 모듈 2: 수학 계산 및 배·느·실 성찰</span>
+      <div className="bg-[#f9f7f2] p-4 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#8b4513] mb-1 whitespace-nowrap">
+            <FileText className="w-3.5 h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">수학 계산 및 성찰일지</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-batang font-bold text-[#2d2926]">
-            피타고라스 실측 계산 &amp; 성찰일지 제출
+          <h2 className="text-lg sm:text-2xl font-batang font-bold text-[#2d2926] break-keep">
+            피타고라스 실측 계산 &amp; 배·느·실 성찰일지 제출
           </h2>
-          <p className="text-xs sm:text-sm text-[#726960] mt-1">
+          <p className="text-xs sm:text-sm text-[#726960] mt-1 break-keep">
             작도로 중심을 찾은 수막새 유물의 실측 수치를 바탕으로 반지름을 계산하고, 활동을 돌아보는 성찰일지를 작성합니다.
           </p>
         </div>
@@ -145,10 +145,10 @@ export const QuizAndReflection: React.FC<Props> = ({
         <button
           type="button"
           onClick={onBackToDrawing}
-          className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/10 text-xs font-medium text-[#2d2926]/80 hover:bg-[#f5f2ed] self-start sm:self-center transition-colors shadow-xs"
+          className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/10 text-xs font-semibold text-[#2d2926]/80 hover:bg-[#f5f2ed] self-start sm:self-center transition-colors shadow-xs whitespace-nowrap shrink-0"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-[#8b4513]" />
-          <span>작도실 다시 가기</span>
+          <ArrowLeft className="w-3.5 h-3.5 text-[#8b4513] shrink-0" />
+          <span className="whitespace-nowrap">작도실 다시 가기</span>
         </button>
       </div>
 

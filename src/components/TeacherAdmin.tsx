@@ -287,21 +287,21 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Teacher Top Dashboard Header */}
-      <div className="bg-[#f9f7f2] p-5 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-[#8b4513] uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4" />
-            <span>교사 전용 평가 및 루브릭 피드백 관리실</span>
+      <div className="bg-[#f9f7f2] p-4 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#8b4513] mb-1 whitespace-nowrap">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">교사 전용 평가 및 루브릭 관리실</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-batang font-bold text-[#2d2926]">
+          <h2 className="text-lg sm:text-2xl font-batang font-bold text-[#2d2926] break-keep">
             중학교 3학년 수학 수행평가 종합 대시보드
           </h2>
-          <p className="text-xs sm:text-sm text-[#726960] mt-1">
-            단원: 원의 현의 성질 & 피타고라스 정리 융합 탐구 (수막새 복원)
+          <p className="text-xs sm:text-sm text-[#726960] mt-1 break-keep">
+            단원: 원의 현의 성질 &amp; 피타고라스 정리 융합 탐구 (수막새 복원)
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 self-start md:self-center">
+        <div className="flex items-center space-x-2 self-start md:self-center shrink-0 flex-wrap gap-y-1">
           <button
             onClick={() => {
               setShowChangePwModal(true);
@@ -309,25 +309,25 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp }) => {
               setNewPwInput('');
               setConfirmPwInput('');
             }}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/15 bg-white text-[#2d2926] hover:bg-[#f5f2ed] text-xs font-medium shadow-xs transition-colors"
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/15 bg-white text-[#2d2926] hover:bg-[#f5f2ed] text-xs font-medium shadow-xs transition-colors whitespace-nowrap shrink-0"
             title="교사 관리실 비밀번호 변경"
           >
-            <KeyRound className="w-3.5 h-3.5 text-[#8b4513]" />
-            <span>비밀번호 변경</span>
+            <KeyRound className="w-3.5 h-3.5 text-[#8b4513] shrink-0" />
+            <span className="whitespace-nowrap">비밀번호 변경</span>
           </button>
           <button
             onClick={exportToCSV}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#2e5a59] hover:bg-[#234544] text-white text-xs font-medium shadow-xs transition-colors"
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#2e5a59] hover:bg-[#234544] text-white text-xs font-medium shadow-xs transition-colors whitespace-nowrap shrink-0"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>CSV 성적표 내보내기</span>
+            <FileSpreadsheet className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">CSV 성적표 내보내기</span>
           </button>
           <button
             onClick={() => setIsAuthenticated(false)}
-            className="flex items-center space-x-1 px-3 py-2 rounded-lg border border-[#2d2926]/15 text-[#726960] hover:text-[#8b4513] hover:bg-[#f5f2ed] text-xs font-medium transition-colors"
+            className="flex items-center space-x-1 px-3 py-2 rounded-lg border border-[#2d2926]/15 text-[#726960] hover:text-[#8b4513] hover:bg-[#f5f2ed] text-xs font-medium transition-colors whitespace-nowrap shrink-0"
           >
-            <LogOut className="w-4 h-4" />
-            <span>로그아웃</span>
+            <LogOut className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">로그아웃</span>
           </button>
         </div>
       </div>

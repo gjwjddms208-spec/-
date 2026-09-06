@@ -219,28 +219,28 @@ export const RestorationCanvas: React.FC<Props> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Banner & Instructions */}
-      <div className="bg-[#f9f7f2] p-5 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-[#8b4513] uppercase tracking-wider mb-1">
-            <Compass className="w-4 h-4" />
-            <span>탐구 모듈 1: 수막새 디지털 작도실</span>
+      <div className="bg-[#f9f7f2] p-4 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#8b4513] mb-1 whitespace-nowrap">
+            <Compass className="w-3.5 h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">수막새 디지털 작도실</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-batang font-bold text-[#2d2926]">
+          <h2 className="text-lg sm:text-2xl font-batang font-bold text-[#2d2926] break-keep">
             깨진 수막새의 원형 중심(복원점 O) 작도하기
           </h2>
-          <p className="text-xs sm:text-sm text-[#726960] mt-1">
+          <p className="text-xs sm:text-sm text-[#726960] mt-1 break-keep">
             수학적 원리: <strong className="text-[#8b4513]">"현의 수직이등분선은 그 원의 중심을 지난다."</strong>
             {' '}서로 다른 두 현의 수직이등분선의 교점을 구하면 원래 원의 중심이 복원됩니다.
           </p>
         </div>
 
         {/* Step Indicator Buttons */}
-        <div className="flex items-center space-x-2 text-xs font-medium">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium shrink-0 overflow-x-auto pb-1 md:pb-0">
           <button
             onClick={() => setStep(1)}
-            className={`px-3 py-1.5 rounded-lg border transition-all ${
+            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${
               step === 1
-                ? 'bg-[#c04000] text-white border-[#c04000]'
+                ? 'bg-[#c04000] text-white border-[#c04000] shadow-xs font-bold'
                 : 'bg-white/70 text-[#2d2926]/75 border border-[#2d2926]/10 hover:bg-[#f5f2ed]'
             }`}
           >
@@ -248,9 +248,9 @@ export const RestorationCanvas: React.FC<Props> = ({
           </button>
           <button
             onClick={() => setStep(2)}
-            className={`px-3 py-1.5 rounded-lg border transition-all ${
+            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${
               step === 2
-                ? 'bg-[#2e5a59] text-white border-[#2e5a59]'
+                ? 'bg-[#2e5a59] text-white border-[#2e5a59] shadow-xs font-bold'
                 : 'bg-white/70 text-[#2d2926]/75 border border-[#2d2926]/10 hover:bg-[#f5f2ed]'
             }`}
           >
@@ -261,9 +261,9 @@ export const RestorationCanvas: React.FC<Props> = ({
               setStep(3);
               if (!drawingData.isRestored) triggerRestoration();
             }}
-            className={`px-3 py-1.5 rounded-lg border transition-all ${
+            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${
               step === 3
-                ? 'bg-[#8b4513] text-white border-[#8b4513]'
+                ? 'bg-[#8b4513] text-white border-[#8b4513] shadow-xs font-bold'
                 : 'bg-white/70 text-[#2d2926]/75 border border-[#2d2926]/10 hover:bg-[#f5f2ed]'
             }`}
           >

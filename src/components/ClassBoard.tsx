@@ -97,22 +97,22 @@ export const ClassBoard: React.FC<Props> = ({ submissions, currentStudent }) => 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Banner & Real-time Info */}
-      <div className="bg-[#f9f7f2] p-5 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-[#8b4513] uppercase tracking-wider mb-1">
-            <LayoutGrid className="w-4 h-4" />
-            <span>탐구 모듈 3: 실시간 학급 대시보드</span>
+      <div className="bg-[#f9f7f2] p-4 sm:p-6 rounded-2xl border border-[#2d2926]/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#8b4513] mb-1 whitespace-nowrap">
+            <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">실시간 학급 현황판</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-batang font-bold text-[#2d2926] flex items-center gap-2">
-            <span>{studentClass ? `${studentClass} 수막새 복원 탐구 현황판` : '우리 반 수막새 복원 탐구 현황판'}</span>
+          <h2 className="text-lg sm:text-2xl font-batang font-bold text-[#2d2926] flex items-center flex-wrap gap-2 break-keep">
+            <span className="break-keep">{studentClass ? `${studentClass} 수막새 복원 탐구 현황판` : '우리 반 수막새 복원 탐구 현황판'}</span>
             {isClassLocked && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#8b4513]/10 text-[#8b4513] border border-[#8b4513]/20">
-                <Lock className="w-3 h-3 mr-1" />
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#8b4513]/10 text-[#8b4513] border border-[#8b4513]/20 whitespace-nowrap">
+                <Lock className="w-3 h-3 mr-1 shrink-0" />
                 {studentClass} 전용
               </span>
             )}
           </h2>
-          <p className="text-xs sm:text-sm text-[#726960] mt-1">
+          <p className="text-xs sm:text-sm text-[#726960] mt-1 break-keep">
             {isClassLocked
               ? `[${studentClass}] 친구들의 작도 결과와 수학 성찰만 안전하게 실시간 공유됩니다.`
               : '친구들의 작도 결과, 수학 성찰, 교사 피드백이 실시간으로 공유됩니다.'}
