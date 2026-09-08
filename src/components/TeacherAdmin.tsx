@@ -5,6 +5,8 @@ import {
   setCustomTeacherPassword,
   getTeacherPassword,
   updateTeacherEvaluation,
+  submitStudentWork,
+  isFirebaseConfigured,
 } from '../lib/firebase';
 import {
   ShieldCheck,
@@ -21,6 +23,9 @@ import {
   Check,
   KeyRound,
   Database,
+  AlertTriangle,
+  PlusCircle,
+  RotateCcw,
   X,
 } from 'lucide-react';
 
@@ -57,6 +62,80 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
   const [newPwInput, setNewPwInput] = useState('');
   const [confirmPwInput, setConfirmPwInput] = useState('');
   const [changePwMsg, setChangePwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Manual student submission modal states (for quick registration / testing in local mode)
+  const [showManualAddModal, setShowManualAddModal] = useState(false);
+  const [manualGradeClass, setManualGradeClass] = useState('3-5');
+  const [manualStudentNo, setManualStudentNo] = useState('01');
+  const [manualTeamNo, setManualTeamNo] = useState(1);
+  const [manualName, setManualName] = useState('');
+  const [manualAnswer, setManualAnswer] = useState('10');
+  const [manualIsRestored, setManualIsRestored] = useState(true);
+  const [manualLearned, setManualLearned] = useState('원의 중심에서 현에 내린 수선이 현을 수직이등분하고, 역으로 현의 수직이등분선은 원의 중심을 반드시 지난다는 성질을 탐구했습니다.');
+  const [manualFelt, setManualFelt] = useState('모둠원들과 함께 깨진 수막새의 중심을 피타고라스 정리와 작도로 복원하는 과정이 흥미로웠습니다.');
+  const [manualConnected, setManualConnected] = useState('도로 커브길의 곡률 안전 설계나 깨진 원형 문화재 복원 과정에 응용할 수 있습니다.');
+  const [manualAddSuccess, setManualAddSuccess] = useState(false);
+  const [manualAddLoading, setManualAddLoading] = useState(false);
+
+  const handleManualAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualName.trim()) return;
+    setManualAddLoading(true);
+
+    try {
+      await submitStudentWork({
+        gradeClass: manualGradeClass.trim(),
+        studentNo: manualStudentNo.trim().padStart(2, '0'),
+        teamNo: manualTeamNo,
+        name: manualName.trim(),
+        drawingData: {
+          chord1: {
+            id: 'c1',
+            p1: { x: 180, y: 110 },
+            p2: { x: 300, y: 110 },
+            midpoint: { x: 240, y: 110 },
+            length: 7.5,
+            color: '#b83a2b',
+            label: '현 AB',
+          },
+          chord2: {
+            id: 'c2',
+            p1: { x: 300, y: 110 },
+            p2: { x: 390, y: 190 },
+            midpoint: { x: 345, y: 150 },
+            length: 7.2,
+            color: '#2e6b5e',
+            label: '현 CD',
+          },
+          centerFound: { x: 250, y: 250 },
+          radiusFound: 10,
+          isRestored: manualIsRestored,
+        },
+        quizData: {
+          distanceOM: 6,
+          chordLength: 16,
+          userAnswer: manualAnswer.trim(),
+          correctAnswer: 10,
+          isCorrect: manualAnswer.trim() === '10',
+        },
+        reflection: {
+          learned: manualLearned.trim(),
+          felt: manualFelt.trim(),
+          connected: manualConnected.trim(),
+        },
+      });
+
+      setManualAddSuccess(true);
+      setTimeout(() => {
+        setShowManualAddModal(false);
+        setManualAddSuccess(false);
+      }, 900);
+    } catch (err) {
+      console.error('Failed to manually register submission:', err);
+    } finally {
+      setManualAddLoading(false);
+    }
+  };
 
   // Authentication check
   const handleAuth = (e: React.FormEvent) => {
@@ -215,14 +294,20 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
     return true;
   });
 
-  // Calculate statistics
-  const total = submissions.length;
-  const evaluatedCount = submissions.filter((s) => s.evaluation).length;
-  const restoredCount = submissions.filter((s) => s.drawingData.isRestored).length;
+  // Calculate statistics (respecting active classFilter)
+  const classSubmissions =
+    classFilter === 'ALL'
+      ? submissions
+      : submissions.filter((s) => s.gradeClass === classFilter);
+
+  const total = classSubmissions.length;
+  const grandTotal = submissions.length;
+  const evaluatedCount = classSubmissions.filter((s) => s.evaluation).length;
+  const restoredCount = classSubmissions.filter((s) => s.drawingData.isRestored).length;
   const quizAccuracy =
     total > 0
       ? Math.round(
-          (submissions.filter((s) => s.quizData.isCorrect).length / total) * 100
+          (classSubmissions.filter((s) => s.quizData.isCorrect).length / total) * 100
         )
       : 0;
 
@@ -304,6 +389,18 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
         </div>
 
         <div className="flex items-center space-x-2 self-start md:self-center shrink-0 flex-wrap gap-y-1">
+          <button
+            onClick={() => {
+              setManualGradeClass(classFilter !== 'ALL' ? classFilter : '3-5');
+              setManualName(searchQuery || '');
+              setShowManualAddModal(true);
+            }}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#8b4513] hover:bg-[#703810] text-white text-xs font-medium shadow-xs transition-colors whitespace-nowrap shrink-0"
+            title="학생 제출 내역 직접 등록 (로컬 모드 테스트 및 수동 등록)"
+          >
+            <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">학생 데이터 직접 등록</span>
+          </button>
           {onOpenFirebaseGuide && (
             <button
               onClick={onOpenFirebaseGuide}
@@ -344,53 +441,107 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
         </div>
       </div>
 
+      {/* Local Mode Notice Banner */}
+      {!isFirebaseConfigured && (
+        <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+          <div className="flex items-start space-x-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs sm:text-sm font-bold text-amber-900 flex items-center gap-1.5 break-keep">
+                <span>현재 클라우드 DB 미연동 상태 (학급 로컬 모드)</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-200/70 text-amber-900 font-semibold shrink-0">
+                  기기 간 전송 미작동
+                </span>
+              </h4>
+              <p className="text-xs text-amber-800/90 mt-1 leading-relaxed break-keep">
+                학생들이 본인의 스마트폰에서 제출하더라도, Firebase가 연결되지 않은 상태에서는 학생 기기 브라우저에만 저장되며 선생님 PC로는 인터넷 전송이 되지 않습니다.
+                전체 학급 실시간 제출을 위해서는 상단의 <strong>[DB 연동 설정]</strong>을 완료하시거나, 우측의 <strong>[학생 데이터 직접 등록]</strong>을 통해 제출 내역을 반영하실 수 있습니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0 self-start md:self-center">
+            {onOpenFirebaseGuide && (
+              <button
+                type="button"
+                onClick={onOpenFirebaseGuide}
+                className="px-3 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-xs transition-colors whitespace-nowrap"
+              >
+                연동 방법 보기
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setManualGradeClass(classFilter !== 'ALL' ? classFilter : '3-5');
+                setManualName(searchQuery || '');
+                setShowManualAddModal(true);
+              }}
+              className="px-3 py-2 rounded-xl bg-white border border-amber-300 hover:bg-amber-100/50 text-amber-900 text-xs font-semibold shadow-xs transition-colors whitespace-nowrap"
+            >
+              학생 데이터 직접 등록
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Overview Analytics Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#f9f7f2] p-4 rounded-xl border border-[#2d2926]/10 shadow-xs">
           <div className="flex items-center justify-between text-xs text-[#726960] mb-1">
-            <span>총 제출 학생</span>
-            <Users className="w-4 h-4 text-[#8b4513]" />
+            <span className="whitespace-nowrap truncate">
+              {classFilter === 'ALL' ? '총 제출 학생' : `${classFilter}반 제출 학생`}
+            </span>
+            <Users className="w-4 h-4 text-[#8b4513] shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-[#2d2926]">{total}명</div>
+          <div className="text-2xl font-bold text-[#2d2926]">
+            {total}명
+            {classFilter !== 'ALL' && (
+              <span className="text-xs font-normal text-[#726960] ml-1.5 font-sans">
+                / 전체 {grandTotal}명
+              </span>
+            )}
+          </div>
           <div className="text-[11px] text-[#726960] mt-1">
-            모둠 활동 참여율 100%
+            {classFilter === 'ALL' ? '전체 등록된 학급 기준' : `${classFilter}반 필터 적용`}
           </div>
         </div>
 
         <div className="bg-[#f9f7f2] p-4 rounded-xl border border-[#2d2926]/10 shadow-xs">
           <div className="flex items-center justify-between text-xs text-[#726960] mb-1">
-            <span>수막새 작도 복원율</span>
-            <CheckCircle2 className="w-4 h-4 text-[#2e5a59]" />
+            <span className="whitespace-nowrap truncate">수막새 작도 복원율</span>
+            <CheckCircle2 className="w-4 h-4 text-[#2e5a59] shrink-0" />
           </div>
           <div className="text-2xl font-bold text-[#2e5a59]">
             {total > 0 ? Math.round((restoredCount / total) * 100) : 0}%
           </div>
           <div className="text-[11px] text-[#726960] mt-1">
-            {restoredCount}명 중심점(250, 250) 도출
+            {total > 0 ? `${restoredCount}명 중심점 도출 성공` : '제출 대기 중'}
           </div>
         </div>
 
         <div className="bg-[#f9f7f2] p-4 rounded-xl border border-[#2d2926]/10 shadow-xs">
           <div className="flex items-center justify-between text-xs text-[#726960] mb-1">
-            <span>피타고라스 계산 정답률</span>
-            <CheckCircle2 className="w-4 h-4 text-[#8b4513]" />
+            <span className="whitespace-nowrap truncate">피타고라스 계산 정답률</span>
+            <CheckCircle2 className="w-4 h-4 text-[#8b4513] shrink-0" />
           </div>
           <div className="text-2xl font-bold text-[#8b4513]">{quizAccuracy}%</div>
           <div className="text-[11px] text-[#726960] mt-1">
-            반지름 r = 10cm 계산 정답
+            {total > 0 ? '반지름 r = 10cm 계산' : '제출 대기 중'}
           </div>
         </div>
 
         <div className="bg-[#f9f7f2] p-4 rounded-xl border border-[#2d2926]/10 shadow-xs">
           <div className="flex items-center justify-between text-xs text-[#726960] mb-1">
-            <span>루브릭 채점 완료율</span>
-            <Award className="w-4 h-4 text-[#c04000]" />
+            <span className="whitespace-nowrap truncate">루브릭 채점 완료율</span>
+            <Award className="w-4 h-4 text-[#c04000] shrink-0" />
           </div>
           <div className="text-2xl font-bold text-[#c04000]">
             {total > 0 ? Math.round((evaluatedCount / total) * 100) : 0}%
           </div>
           <div className="text-[11px] text-[#726960] mt-1">
-            {evaluatedCount} / {total}명 피드백 완료
+            {total > 0 ? `${evaluatedCount} / ${total}명 피드백 완료` : '제출 대기 중'}
           </div>
         </div>
       </div>
@@ -481,8 +632,71 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
             <tbody className="divide-y divide-[#2d2926]/10">
               {filteredSubmissions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-[#726960]">
-                    해당 조건의 제출 내역이 없습니다.
+                  <td colSpan={8} className="py-10 px-4 text-center">
+                    <div className="max-w-lg mx-auto space-y-3">
+                      <div className="w-10 h-10 rounded-full bg-[#8b4513]/10 text-[#8b4513] flex items-center justify-center mx-auto">
+                        <Search className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-[#2d2926]">
+                          {classFilter !== 'ALL' ? `[${classFilter}반]` : ''} {searchQuery ? `'${searchQuery}'` : ''} 일치하는 제출 내역이 없습니다.
+                        </h4>
+                        <p className="text-xs text-[#726960] mt-1">
+                          {submissions.length > 0 ? (
+                            <>
+                              현재 등록된 학급은{' '}
+                              <strong className="text-[#8b4513]">
+                                {Array.from(new Set(submissions.map((s) => s.gradeClass))).join(', ')}반
+                              </strong>{' '}
+                              (총 {submissions.length}명) 입니다.
+                            </>
+                          ) : (
+                            '아직 등록된 학생 제출 내역이 없습니다.'
+                          )}
+                        </p>
+
+                        {!isFirebaseConfigured && (
+                          <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200/80 rounded-xl p-3 mt-3 text-left leading-relaxed">
+                            <span className="font-bold block mb-0.5">
+                              💡 5반 학생이 스마트폰으로 제출했는데 여기에 안 보이나요?
+                            </span>
+                            현재 <strong>클라우드 DB(Firebase)가 연결되지 않은 학급 로컬 모드</strong>에서는 학생 폰 내부 브라우저에만 저장되고 선생님 PC로는 인터넷 전송이 되지 않습니다.
+                            <br />
+                            상단의 <strong>[DB 연동 설정]</strong>에서 Firebase 키를 등록해 주시거나, 아래 버튼으로 지금 바로 학생 데이터를 추가할 수 있습니다.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
+                        {(classFilter !== 'ALL' || teamFilter !== 'ALL' || evalFilter !== 'ALL' || searchQuery) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setClassFilter('ALL');
+                              setTeamFilter('ALL');
+                              setEvalFilter('ALL');
+                              setSearchQuery('');
+                            }}
+                            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#2d2926]/15 bg-white text-xs font-semibold text-[#2d2926] hover:bg-[#f5f2ed] shadow-xs transition-colors"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-[#8b4513]" />
+                            <span>전체 학급 보기로 필터 초기화</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualGradeClass(classFilter !== 'ALL' ? classFilter : '3-5');
+                            setManualName(searchQuery || '');
+                            setShowManualAddModal(true);
+                          }}
+                          className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#8b4513] hover:bg-[#703810] text-white text-xs font-semibold shadow-xs transition-colors"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          <span>학생 제출 내역 직접 등록</span>
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -904,6 +1118,179 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
                   className="flex-1 py-2 rounded-lg bg-[#8b4513] hover:bg-[#703810] text-xs font-bold text-white shadow-xs"
                 >
                   변경 저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Student Submission Registration Modal */}
+      {showManualAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#f9f7f2] rounded-2xl border border-[#2d2926]/15 max-w-lg w-full p-6 shadow-2xl relative space-y-4 my-8">
+            <button
+              onClick={() => setShowManualAddModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#726960] hover:text-[#2d2926] hover:bg-[#f5f2ed]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-2 text-[#8b4513]">
+              <PlusCircle className="w-5 h-5" />
+              <h3 className="font-batang font-bold text-base text-[#2d2926]">
+                학생 제출 데이터 직접 등록
+              </h3>
+            </div>
+
+            <p className="text-xs text-[#726960] leading-relaxed">
+              학생이 스마트폰/태블릿으로 제출했거나 로컬 모드에서 교사 PC로 전송되지 않았을 때, 제출 내역을 관리실에 즉시 추가하여 루브릭 평가 및 통계에 반영할 수 있습니다.
+            </p>
+
+            {manualAddSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center space-x-2">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>학생 제출 내역이 성공적으로 등록되었습니다!</span>
+              </div>
+            )}
+
+            <form onSubmit={handleManualAddSubmit} className="space-y-3.5">
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                    학급
+                  </label>
+                  <select
+                    value={manualGradeClass}
+                    onChange={(e) => setManualGradeClass(e.target.value)}
+                    className="w-full px-2.5 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-xs text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                  >
+                    {['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9'].map((c) => (
+                      <option key={c} value={c}>{c}반</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                    번호
+                  </label>
+                  <input
+                    type="text"
+                    value={manualStudentNo}
+                    onChange={(e) => setManualStudentNo(e.target.value)}
+                    placeholder="예: 05"
+                    className="w-full px-2.5 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-xs text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                    모둠
+                  </label>
+                  <select
+                    value={manualTeamNo}
+                    onChange={(e) => setManualTeamNo(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-xs text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((t) => (
+                      <option key={t} value={t}>{t}모둠</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                  학생 이름 <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="예: 이지호"
+                  className="w-full px-3 py-2 rounded-lg border border-[#2d2926]/20 bg-white text-xs text-[#2d2926] focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 bg-white/70 p-3 rounded-xl border border-[#2d2926]/10">
+                <label className="flex items-center space-x-2 text-xs font-medium text-[#2d2926] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={manualIsRestored}
+                    onChange={(e) => setManualIsRestored(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#8b4513] focus:ring-[#8b4513]"
+                  />
+                  <span>수막새 작도 복원 완료 (250, 250)</span>
+                </label>
+                <div>
+                  <div className="text-[11px] text-[#726960] mb-0.5">피타고라스 계산 답(cm)</div>
+                  <input
+                    type="text"
+                    value={manualAnswer}
+                    onChange={(e) => setManualAnswer(e.target.value)}
+                    placeholder="10"
+                    className="w-full px-2 py-1 rounded border border-[#2d2926]/20 bg-white text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                  수학적 개념·원리 (배운 점)
+                </label>
+                <textarea
+                  rows={2}
+                  value={manualLearned}
+                  onChange={(e) => setManualLearned(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-[#2d2926]/20 bg-white text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                  모둠 협력·소통 (느낀 점)
+                </label>
+                <textarea
+                  rows={2}
+                  value={manualFelt}
+                  onChange={(e) => setManualFelt(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-[#2d2926]/20 bg-white text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#2d2926] mb-1">
+                  실생활 및 문화재 연결점
+                </label>
+                <textarea
+                  rows={2}
+                  value={manualConnected}
+                  onChange={(e) => setManualConnected(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-[#2d2926]/20 bg-white text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#8b4513]/30"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-2 border-t border-[#2d2926]/10">
+                <button
+                  type="button"
+                  onClick={() => setShowManualAddModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-[#2d2926]/20 text-xs font-medium text-[#726960] hover:bg-[#f5f2ed]"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={manualAddLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-[#8b4513] hover:bg-[#703810] text-xs font-bold text-white shadow-xs disabled:opacity-50 flex items-center justify-center space-x-1.5"
+                >
+                  {manualAddLoading ? (
+                    <span>등록 중...</span>
+                  ) : (
+                    <>
+                      <PlusCircle className="w-4 h-4" />
+                      <span>대시보드에 즉시 등록</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
