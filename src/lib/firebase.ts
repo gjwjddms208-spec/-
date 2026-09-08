@@ -13,15 +13,38 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import type { Submission, RubricEvaluation } from '../types';
+import firebaseAppletConfig from '../../firebase-applet-config.json';
 
-// Environment variables
+// Default provisioned Firebase credentials for this applet
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyD3m5gVbS4rLRrpOVwF33terczLO1YReg4',
+  authDomain: 'gen-lang-client-0971204712.firebaseapp.com',
+  projectId: 'gen-lang-client-0971204712',
+  storageBucket: 'gen-lang-client-0971204712.firebasestorage.app',
+  messagingSenderId: '694657547252',
+  appId: '1:694657547252:web:24314505a5f956de3a17a1',
+  firestoreDatabaseId: 'ai-studio-c12254f3-9422-4542-af1c-fd2eb52e889b',
+};
+
+// Helper to normalize gradeClass (e.g., '9', '9반', '3-9반', '3-9' -> '3-9')
+export function normalizeGradeClass(cls: string): string {
+  if (!cls) return '';
+  const trimmed = cls.trim();
+  const match = trimmed.match(/^(?:3-)?(\d+)(?:반)?$/);
+  if (match && match[1]) {
+    return `3-${match[1]}`;
+  }
+  return trimmed;
+}
+
+// Environment variables with fallback to bundled provisioned Firebase config
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey || DEFAULT_FIREBASE_CONFIG.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain || DEFAULT_FIREBASE_CONFIG.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId || DEFAULT_FIREBASE_CONFIG.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket || DEFAULT_FIREBASE_CONFIG.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId || DEFAULT_FIREBASE_CONFIG.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId || DEFAULT_FIREBASE_CONFIG.appId,
 };
 
 // Teacher password management: prioritize custom localStorage password, then VITE_TEACHER_PASSWORD, default to '2026'
@@ -74,7 +97,18 @@ let db: Firestore | null = null;
 if (isFirebaseConfigured) {
   try {
     app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    const customDbId =
+      firebaseAppletConfig?.firestoreDatabaseId || DEFAULT_FIREBASE_CONFIG.firestoreDatabaseId;
+    if (customDbId && customDbId !== '(default)') {
+      try {
+        db = getFirestore(app, customDbId);
+      } catch (dbErr) {
+        console.warn('Failed to init with custom databaseId, falling back to default db:', dbErr);
+        db = getFirestore(app);
+      }
+    } else {
+      db = getFirestore(app);
+    }
   } catch (error) {
     console.error('Firebase initialization error:', error);
     db = null;
@@ -84,6 +118,7 @@ if (isFirebaseConfigured) {
 // Fallback Local Storage Storage Key
 const LOCAL_STORAGE_KEY = 'sumaksae_submissions_v1';
 const BROADCAST_CHANNEL_NAME = 'sumaksae_channel';
+const LOCAL_EVENT_NAME = 'sumaksae_local_update';
 
 // Default initial sample submissions for classroom demonstration
 const DEFAULT_SAMPLE_SUBMISSIONS: Submission[] = [
@@ -269,6 +304,10 @@ function saveLocalSubmissions(submissions: Submission[]) {
       channel.postMessage({ type: 'UPDATE', submissions });
       channel.close();
     }
+    // Also dispatch custom event for the current window
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(LOCAL_EVENT_NAME, { detail: submissions }));
+    }
   } catch (e) {
     console.error('Error writing local submissions', e);
   }
@@ -296,6 +335,8 @@ export function subscribeToSubmissions(
             list.push({
               id: docSnapshot.id,
               ...data,
+              gradeClass: normalizeGradeClass(data.gradeClass || ''),
+              studentNo: String(data.studentNo || '').padStart(2, '0'),
               createdAt:
                 data.createdAt?.toDate?.()?.toISOString() ||
                 data.createdAt ||
@@ -325,6 +366,9 @@ export function subscribeToSubmissions(
   const storageListener = () => {
     callback(getLocalSubmissions());
   };
+  const localEventListener = (e: any) => {
+    callback(e.detail || getLocalSubmissions());
+  };
 
   if (typeof BroadcastChannel !== 'undefined') {
     channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -336,9 +380,11 @@ export function subscribeToSubmissions(
   }
 
   window.addEventListener('storage', storageListener);
+  window.addEventListener(LOCAL_EVENT_NAME, localEventListener);
 
   return () => {
     window.removeEventListener('storage', storageListener);
+    window.removeEventListener(LOCAL_EVENT_NAME, localEventListener);
     if (channel) {
       channel.close();
     }
@@ -348,12 +394,19 @@ export function subscribeToSubmissions(
 export async function submitStudentWork(
   data: Omit<Submission, 'id' | 'createdAt'>
 ): Promise<string> {
+  const normalizedData = {
+    ...data,
+    gradeClass: normalizeGradeClass(data.gradeClass),
+    studentNo: String(data.studentNo).padStart(2, '0'),
+  };
+
   if (isFirebaseConfigured && db) {
     try {
       const docRef = await addDoc(collection(db, 'submissions'), {
-        ...data,
+        ...normalizedData,
         createdAt: serverTimestamp(),
       });
+      console.log('Successfully saved submission to Firestore:', docRef.id);
       return docRef.id;
     } catch (e) {
       console.error('Firestore save failed, saving locally:', e);
@@ -363,7 +416,7 @@ export async function submitStudentWork(
   // Local fallback
   const list = getLocalSubmissions();
   const newSubmission: Submission = {
-    ...data,
+    ...normalizedData,
     id: 'sub-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
     createdAt: new Date().toISOString(),
   };

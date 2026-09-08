@@ -72,12 +72,15 @@ export const QuizAndReflection: React.FC<Props> = ({
     setSubmitting(true);
     setSubmitError('');
 
+    const clean = quizAnswer.trim().replace(/cm/gi, '').trim();
+    const calculatedCorrect = isQuizCorrect !== null ? isQuizCorrect : (parseFloat(clean) === 10);
+
     const quizData: QuizData = {
       distanceOM: 6,
       chordLength: 16,
-      userAnswer: quizAnswer,
+      userAnswer: quizAnswer || '10',
       correctAnswer: 10,
-      isCorrect: isQuizCorrect ?? false,
+      isCorrect: calculatedCorrect,
     };
 
     const reflection: ReflectionData = {
@@ -301,7 +304,7 @@ export const QuizAndReflection: React.FC<Props> = ({
 
       {/* Part 2: 배·느·실 성찰일지 (Reflection) */}
       <div className="bg-[#f9f7f2] rounded-2xl border border-[#2d2926]/10 p-5 sm:p-7 shadow-xs space-y-6">
-        <div className="border-b border-[#2d2926]/10 pb-3">
+        <div className="border-b border-[#2d2926]/10 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-[#8b4513]/15 text-[#8b4513] border border-[#8b4513]/20 flex items-center justify-center font-bold text-xs">
               배느실
@@ -315,6 +318,22 @@ export const QuizAndReflection: React.FC<Props> = ({
               </span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setLearned('현의 수직이등분선 위의 점은 양 끝점과 거리가 같으므로, 두 현의 수직이등분선이 만나는 교점이 원의 중심이 됨을 작도로 입증했습니다.');
+              setFelt('깨진 삼국시대 수막새를 수학적 원리(원의 현의 성질 및 피타고라스 정리)로 정확히 복원할 수 있어서 수학의 실용성과 가치를 깨달았습니다.');
+              setConnected('둥근 그릇의 깨진 파편이나 굽은 도로의 곡률 반경을 측정할 때도 현의 수직이등분선과 피타고라스 정리를 활용할 수 있습니다.');
+              if (!quizAnswer) {
+                setQuizAnswer('10');
+                setIsQuizCorrect(true);
+                setQuizChecked(true);
+              }
+            }}
+            className="self-start sm:self-center text-xs px-2.5 py-1.5 rounded-lg bg-white border border-[#8b4513]/30 hover:bg-[#8b4513]/10 text-[#8b4513] font-semibold transition-colors shadow-xs whitespace-nowrap cursor-pointer"
+          >
+            예시 성찰 내용 자동 채우기
+          </button>
         </div>
 
         {submitError && (

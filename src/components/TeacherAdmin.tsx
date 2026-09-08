@@ -7,6 +7,7 @@ import {
   updateTeacherEvaluation,
   submitStudentWork,
   isFirebaseConfigured,
+  normalizeGradeClass,
 } from '../lib/firebase';
 import {
   ShieldCheck,
@@ -76,6 +77,29 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
   const [manualConnected, setManualConnected] = useState('도로 커브길의 곡률 안전 설계나 깨진 원형 문화재 복원 과정에 응용할 수 있습니다.');
   const [manualAddSuccess, setManualAddSuccess] = useState(false);
   const [manualAddLoading, setManualAddLoading] = useState(false);
+  const [pastedCode, setPastedCode] = useState('');
+  const [codeImportMsg, setCodeImportMsg] = useState('');
+
+  const handleImportCode = () => {
+    if (!pastedCode.trim()) return;
+    try {
+      const decoded = decodeURIComponent(escape(atob(pastedCode.trim())));
+      const data = JSON.parse(decoded);
+      if (data.name) setManualName(data.name);
+      if (data.gradeClass) setManualGradeClass(data.gradeClass);
+      if (data.studentNo) setManualStudentNo(data.studentNo);
+      if (data.teamNo) setManualTeamNo(Number(data.teamNo) || 1);
+      if (data.drawingData?.isRestored !== undefined) setManualIsRestored(Boolean(data.drawingData.isRestored));
+      if (data.quizData?.userAnswer) setManualAnswer(String(data.quizData.userAnswer));
+      if (data.reflection?.learned) setManualLearned(data.reflection.learned);
+      if (data.reflection?.felt) setManualFelt(data.reflection.felt);
+      if (data.reflection?.connected) setManualConnected(data.reflection.connected);
+      setCodeImportMsg('학생 제출 데이터가 성공적으로 자동 입력되었습니다!');
+      setTimeout(() => setCodeImportMsg(''), 3000);
+    } catch {
+      setCodeImportMsg('올바르지 않은 제출 코드입니다. 코드를 다시 확인해 주세요.');
+    }
+  };
 
   const handleManualAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,7 +303,12 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
 
   // Filter submissions
   const filteredSubmissions = submissions.filter((s) => {
-    if (classFilter !== 'ALL' && s.gradeClass !== classFilter) return false;
+    if (
+      classFilter !== 'ALL' &&
+      normalizeGradeClass(s.gradeClass) !== normalizeGradeClass(classFilter)
+    ) {
+      return false;
+    }
     if (teamFilter !== 'ALL' && s.teamNo !== teamFilter) return false;
     if (evalFilter === 'EVALUATED' && !s.evaluation) return false;
     if (evalFilter === 'PENDING' && s.evaluation) return false;
@@ -288,6 +317,7 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
       return (
         s.name.toLowerCase().includes(q) ||
         s.gradeClass.toLowerCase().includes(q) ||
+        normalizeGradeClass(s.gradeClass).toLowerCase().includes(q) ||
         s.studentNo.includes(q)
       );
     }
@@ -298,16 +328,18 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
   const classSubmissions =
     classFilter === 'ALL'
       ? submissions
-      : submissions.filter((s) => s.gradeClass === classFilter);
+      : submissions.filter(
+          (s) => normalizeGradeClass(s.gradeClass) === normalizeGradeClass(classFilter)
+        );
 
   const total = classSubmissions.length;
   const grandTotal = submissions.length;
   const evaluatedCount = classSubmissions.filter((s) => s.evaluation).length;
-  const restoredCount = classSubmissions.filter((s) => s.drawingData.isRestored).length;
+  const restoredCount = classSubmissions.filter((s) => s.drawingData?.isRestored).length;
   const quizAccuracy =
     total > 0
       ? Math.round(
-          (classSubmissions.filter((s) => s.quizData.isCorrect).length / total) * 100
+          (classSubmissions.filter((s) => s.quizData?.isCorrect).length / total) * 100
         )
       : 0;
 
@@ -441,8 +473,40 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
         </div>
       </div>
 
-      {/* Local Mode Notice Banner */}
-      {!isFirebaseConfigured && (
+      {/* Cloud Sync Status Banner */}
+      {isFirebaseConfigured ? (
+        <div className="bg-emerald-50/90 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between gap-3.5">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs sm:text-sm font-bold text-emerald-900 flex items-center gap-2 break-keep">
+                <span>실시간 클라우드 DB 연동 완료 (Firebase Firestore)</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-200/80 text-emerald-900 font-semibold shrink-0">
+                  자동 실시간 수신 중
+                </span>
+              </h4>
+              <p className="text-xs text-emerald-800/90 mt-1 leading-relaxed break-keep">
+                학생들이 각자의 스마트폰에서 [제출하기]를 누르면, 선생님이 직접 등록하실 필요 없이 <strong>이 관리실 대시보드에 1초 만에 실시간으로 자동 집계</strong>됩니다.
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center space-x-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setManualGradeClass(classFilter !== 'ALL' ? classFilter : '3-5');
+                setManualName(searchQuery || '');
+                setShowManualAddModal(true);
+              }}
+              className="px-3 py-2 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-100/50 text-emerald-900 text-xs font-semibold shadow-xs transition-colors whitespace-nowrap"
+            >
+              수동 추가 (보조용)
+            </button>
+          </div>
+        </div>
+      ) : (
         <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5">
           <div className="flex items-start space-x-3 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
@@ -714,7 +778,7 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
                       {sub.name}
                     </td>
                     <td className="py-3 px-4">
-                      {sub.drawingData.isRestored ? (
+                      {sub.drawingData?.isRestored ? (
                         <span className="inline-flex items-center space-x-1 text-[#2e5a59] font-semibold text-[11px]">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>복원성공</span>
@@ -726,10 +790,10 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
                     <td className="py-3 px-4">
                       <span
                         className={`font-mono font-bold ${
-                          sub.quizData.isCorrect ? 'text-[#2e5a59]' : 'text-[#c04000]'
+                          sub.quizData?.isCorrect ? 'text-[#2e5a59]' : 'text-[#c04000]'
                         }`}
                       >
-                        {sub.quizData.userAnswer || '미입력'}cm ({sub.quizData.isCorrect ? '정답' : '오답'})
+                        {sub.quizData?.userAnswer || '미입력'}cm ({sub.quizData?.isCorrect ? '정답' : '오답'})
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -1153,6 +1217,37 @@ export const TeacherAdmin: React.FC<Props> = ({ submissions, onBackToApp, onOpen
                 <span>학생 제출 내역이 성공적으로 등록되었습니다!</span>
               </div>
             )}
+
+            {/* Quick Import via Code */}
+            <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-1.5">
+              <div className="text-[11px] font-bold text-amber-900 flex items-center justify-between">
+                <span>💡 학생이 보내준 [제출 코드]로 자동 채우기</span>
+                <span className="text-[10px] font-normal text-amber-800">
+                  (코드가 없다면 아래에 이름만 입력하셔도 됩니다)
+                </span>
+              </div>
+              <div className="flex space-x-1.5">
+                <input
+                  type="text"
+                  value={pastedCode}
+                  onChange={(e) => setPastedCode(e.target.value)}
+                  placeholder="학생 화면에서 복사한 코드 붙여넣기..."
+                  className="flex-1 px-2.5 py-1.5 rounded-lg border border-amber-300 bg-white text-xs text-[#2d2926] font-mono focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleImportCode}
+                  className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shrink-0 cursor-pointer shadow-2xs"
+                >
+                  불러오기
+                </button>
+              </div>
+              {codeImportMsg && (
+                <p className="text-[11px] font-medium text-amber-900 pt-0.5">
+                  {codeImportMsg}
+                </p>
+              )}
+            </div>
 
             <form onSubmit={handleManualAddSubmit} className="space-y-3.5">
               <div className="grid grid-cols-3 gap-2">

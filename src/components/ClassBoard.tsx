@@ -13,6 +13,8 @@ import {
   X,
   Compass,
   Lock,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface Props {
@@ -31,6 +33,7 @@ export const ClassBoard: React.FC<Props> = ({ submissions, currentStudent }) => 
   const [selectedTeam, setSelectedTeam] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModalSub, setSelectedModalSub] = useState<Submission | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const teamColors: Record<number, { bg: string; text: string; border: string; name: string }> = {
     1: { bg: 'bg-[#2e5a59]', text: 'text-white', border: 'border-[#244746]', name: '1모둠 (청룡)' },
@@ -346,19 +349,49 @@ export const ClassBoard: React.FC<Props> = ({ submissions, currentStudent }) => 
             </button>
 
             {/* Modal Header */}
-            <div className="flex items-center space-x-2.5 mb-4 pb-3 border-b border-[#2d2926]/10">
-              <div className="w-10 h-10 rounded-lg bg-[#8b4513] text-white flex items-center justify-center font-bold text-sm">
-                {selectedModalSub.teamNo}모둠
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-[#2d2926]/10 pr-8">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-lg bg-[#8b4513] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  {selectedModalSub.teamNo}모둠
+                </div>
+                <div>
+                  <h3 className="font-batang font-bold text-lg text-[#2d2926]">
+                    {selectedModalSub.name} 학생의 수막새 복원 탐구 보고서
+                  </h3>
+                  <p className="text-xs text-[#726960]">
+                    {selectedModalSub.gradeClass} {selectedModalSub.studentNo}번 • 제출일시:{' '}
+                    {formatDate(selectedModalSub.createdAt)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-batang font-bold text-lg text-[#2d2926]">
-                  {selectedModalSub.name} 학생의 수막새 복원 탐구 보고서
-                </h3>
-                <p className="text-xs text-[#726960]">
-                  {selectedModalSub.gradeClass} {selectedModalSub.studentNo}번 • 제출일시:{' '}
-                  {formatDate(selectedModalSub.createdAt)}
-                </p>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const code = btoa(unescape(encodeURIComponent(JSON.stringify(selectedModalSub))));
+                    navigator.clipboard.writeText(code);
+                    setCopiedCode(true);
+                    setTimeout(() => setCopiedCode(false), 2500);
+                  } catch (e) {
+                    console.error('Failed to copy code:', e);
+                  }
+                }}
+                className="self-start sm:self-center px-3 py-1.5 rounded-lg border border-[#8b4513]/30 bg-white hover:bg-[#8b4513]/5 text-[#8b4513] text-xs font-semibold shadow-2xs transition-colors flex items-center space-x-1.5 shrink-0 cursor-pointer"
+                title="선생님 PC 관리실로 전달하기 위한 백업 코드 복사"
+              >
+                {copiedCode ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-700 font-bold">제출 코드 복사됨!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-[#8b4513]" />
+                    <span>선생님 전달용 코드 복사</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Content Body */}
